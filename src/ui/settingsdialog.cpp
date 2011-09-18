@@ -57,6 +57,9 @@
 # include "internet/spotifysettingspage.h"
 #endif
 
+#include "internet/dancetagsettingspage.h"
+#include "internet/dancetagprovider.h"
+
 #include <QDesktopWidget>
 #include <QPushButton>
 #include <QScrollArea>
@@ -188,4 +191,12 @@ void SettingsDialog::OpenAtPage(Page page) {
 
 void SettingsDialog::CurrentTextChanged(const QString& text) {
   ui_->title->setText("<b>" + text + "</b>");
+}
+
+void SettingsDialog::SetDanceTagProvider(DanceTagProvider* dtp) {
+  if(!dtprovider_) {
+    if ((dtp) && (dtp->ready()))
+      AddPage(Page_DanceTag, new DanceTagSettingsPage(this));
+  }
+  dtprovider_ = dtp;
 }

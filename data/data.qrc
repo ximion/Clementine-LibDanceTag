@@ -33,6 +33,7 @@
         <file>last.fm/my_friends.png</file>
         <file>last.fm/my_neighbours.png</file>
         <file>last.fm/user_purple.png</file>
+        <file>providers/dancetag.png</file>
         <file>providers/somafm.png</file>
         <file>schema/schema-1.sql</file>
         <file>schema/schema-2.sql</file>
@@ -314,6 +315,7 @@
         <file>schema/schema-30.sql</file>
         <file>schema/schema-31.sql</file>
         <file>schema/schema-32.sql</file>
+	<file>schema/schema-35.sql</file>
         <file>icons/22x22/edit-find.png</file>
         <file>icons/32x32/edit-find.png</file>
         <file>icons/48x48/edit-find.png</file>

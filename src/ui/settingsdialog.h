@@ -30,6 +30,7 @@ class GlobalShortcuts;
 class LibraryDirectoryModel;
 class SettingsPage;
 class SongInfoView;
+class DanceTagProvider;
 class Ui_SettingsDialog;
 
 class GstEngine;
@@ -51,6 +52,7 @@ public:
     Page_Lastfm,
     Page_Spotify,
     Page_Magnatune,
+    Page_DanceTag,
     Page_DigitallyImported,
     Page_BackgroundStreams,
     Page_Proxy,
@@ -63,6 +65,7 @@ public:
   void SetGlobalShortcutManager(GlobalShortcuts* manager) { manager_ = manager; }
   void SetGstEngine(const GstEngine* engine) { gst_engine_ = engine; }
   void SetSongInfoView(SongInfoView* view) { song_info_view_ = view; }
+  void SetDanceTagProvider(DanceTagProvider* dtp);
 
   bool is_loading_settings() const { return loading_settings_; }
 
@@ -102,6 +105,7 @@ private:
   const GstEngine* gst_engine_;
   SongInfoView* song_info_view_;
   BackgroundStreams* streams_;
+  DanceTagProvider *dtprovider_;
 
   Ui_SettingsDialog* ui_;
   bool loading_settings_;

@@ -176,6 +176,7 @@ class Song {
   int disc() const { return d->disc_; }
   float bpm() const { return d->bpm_; }
   int year() const { return d->year_; }
+  const QString& dances() const { return d->dances_; }
   const QString& genre() const { return d->genre_; }
   const QString& comment() const { return d->comment_; }
   bool is_compilation() const {
@@ -250,6 +251,7 @@ class Song {
   void set_track(int v) { d->track_ = v; }
   void set_disc(int v) { d->disc_ = v; }
   void set_bpm(float v) { d->bpm_ = v; }
+  void set_dances(const QString& v) { d->dances_ = v; }
   void set_year(int v) { d->year_ = v; }
   void set_genre(const QString& v) { d->genre_ = v; }
   void set_genre_id3(int id);
@@ -310,6 +312,7 @@ class Song {
     QString artist_;
     QString albumartist_;
     QString composer_;
+    QString dances_;
     int track_;
     int disc_;
     float bpm_;

@@ -148,6 +148,8 @@ set(SOURCES
   internet/skyfmservice.cpp
   internet/somafmservice.cpp
   internet/somafmurlhandler.cpp
+  internet/dancetagprovider.cpp
+  internet/dancetagsettingspage.cpp
 
   library/groupbydialog.cpp
   library/library.cpp
@@ -366,7 +368,7 @@ set(HEADERS
   internet/icecastbackend.h
   internet/icecastfilterwidget.h
   internet/icecastmodel.h
-  internet/icecastservice.h 
+  internet/icecastservice.h
   internet/internetmimedata.h
   internet/internetmodel.h
   internet/internetservice.h
@@ -381,6 +383,8 @@ set(HEADERS
   internet/skyfmservice.h
   internet/somafmservice.h
   internet/somafmurlhandler.h
+  internet/dancetagprovider.h
+  internet/dancetagsettingspage.h
 
   library/groupbydialog.h
   library/library.h
@@ -531,6 +535,7 @@ set(UI
   internet/magnatunedownloaddialog.ui
   internet/magnatunesettingspage.ui
   internet/spotifysettingspage.ui
+  internet/dancetagsettingspage.ui
 
   library/groupbydialog.ui
   library/libraryfilterwidget.ui

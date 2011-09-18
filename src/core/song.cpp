@@ -573,6 +573,7 @@ void Song::InitFromQuery(const SqlRow& q, bool reliable_metadata, int col) {
 
   d->cue_path_ = tostr(col + 34);
   d->unavailable_ = q.value(col + 35).toBool();
+  d->dances_ = tostr(col + 36);
 
   #undef tostr
   #undef toint
@@ -1055,6 +1056,8 @@ void Song::BindToQuery(QSqlQuery *query) const {
 
   query->bindValue(":cue_path", d->cue_path_);
   query->bindValue(":unavailable", d->unavailable_ ? 1 : 0);
+  
+  query->bindValue(":dances", strval(d->dances_));
 
   #undef intval
   #undef notnullintval

@@ -46,6 +46,7 @@
 #include "internet/internetview.h"
 #include "internet/internetviewcontainer.h"
 #include "internet/savedradio.h"
+#include "internet/dancetagprovider.h"
 #include "library/groupbydialog.h"
 #include "library/library.h"
 #include "library/librarybackend.h"
@@ -279,6 +280,11 @@ MainWindow::MainWindow(
   device_view_->SetLibrary(library_->model());
 
   organise_dialog_->SetDestinationModel(library_->model()->directory_model());
+  
+  // Initialize DanceTag module
+  dtprovider_ = new DanceTagProvider(this);
+  qDebug() << "HHHHHH" << dtprovider_->available();
+  dtprovider_->_test();
 
   // Icons
   qLog(Debug) << "Creating UI";
@@ -434,6 +440,8 @@ MainWindow::MainWindow(
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), osd_, SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), player_, SLOT(CurrentMetadataChanged(Song)));
+  if (dtprovider_->available())
+    connect(playlists_, SIGNAL(CurrentSongChanged(Song)), dtprovider_, SLOT(fetchDanceTagFromWeb(Song)));
   connect(playlists_, SIGNAL(EditingFinished(QModelIndex)), SLOT(PlaylistEditFinished(QModelIndex)));
   connect(playlists_, SIGNAL(Error(QString)), SLOT(ShowErrorDialog(QString)));
   connect(playlists_, SIGNAL(SummaryTextChanged(QString)), ui_->playlist_summary, SLOT(setText(QString)));
@@ -1913,6 +1921,7 @@ void MainWindow::EnsureSettingsDialogCreated() {
 
   settings_dialog_->SetGlobalShortcutManager(global_shortcuts_);
   settings_dialog_->SetSongInfoView(song_info_view_);
+  settings_dialog_->SetDanceTagProvider(dtprovider_);
 
   // Settings
   connect(settings_dialog_.get(), SIGNAL(accepted()), SLOT(ReloadAllSettings()));

@@ -59,6 +59,7 @@ class Player;
 class PlaylistBackend;
 class PlaylistManager;
 class QueueManager;
+class DanceTagProvider;
 class InternetItem;
 class InternetModel;
 class InternetViewContainer;
@@ -279,6 +280,7 @@ class MainWindow : public QMainWindow, public PlatformInterface {
   Library* library_;
   GlobalShortcuts* global_shortcuts_;
   Remote* remote_;
+  DanceTagProvider *dtprovider_;
 
   DeviceManager* devices_;
 
