@@ -126,6 +126,7 @@ Playlist::Playlist(PlaylistBackend* backend,
       = column_alignments_[Column_Disc]
       = column_alignments_[Column_Year]
       = column_alignments_[Column_BPM]
+      = column_alignments_[Column_Dances]
       = column_alignments_[Column_Bitrate]
       = column_alignments_[Column_Samplerate]
       = column_alignments_[Column_Filesize]
@@ -275,6 +276,7 @@ QVariant Playlist::data(const QModelIndex& index, int role) const {
         case Column_Score:        return song.score();
 
         case Column_BPM:          return song.bpm();
+	case Column_Dances:       return song.dances();
         case Column_Bitrate:      return song.bitrate();
         case Column_Samplerate:   return song.samplerate();
         case Column_Filename:     return song.url();
@@ -1055,6 +1057,7 @@ bool Playlist::CompareItems(int column, Qt::SortOrder order,
     case Column_Score:        cmp(score);
 
     case Column_BPM:          cmp(bpm);
+    case Column_Dances:       cmp(dances);
     case Column_Bitrate:      cmp(bitrate);
     case Column_Samplerate:   cmp(samplerate);
     case Column_Filename:     cmp(url);
@@ -1093,6 +1096,7 @@ QString Playlist::column_name(Column column) {
     case Column_Score:        return tr("Score");
 
     case Column_BPM:          return tr("BPM");
+    case Column_Dances:       return tr("Dances");
     case Column_Bitrate:      return tr("Bit rate");
     case Column_Samplerate:   return tr("Sample rate");
     case Column_Filename:     return tr("File name");

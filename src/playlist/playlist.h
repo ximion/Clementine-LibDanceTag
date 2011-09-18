@@ -93,6 +93,7 @@ class Playlist : public QAbstractListModel {
     Column_BPM,
     Column_Bitrate,
     Column_Samplerate,
+    Column_Dances,
     Column_Filename,
     Column_BaseFilename,
     Column_Filesize,
