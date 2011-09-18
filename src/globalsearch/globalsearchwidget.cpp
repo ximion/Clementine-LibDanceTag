@@ -19,10 +19,12 @@
 #include "globalsearch.h"
 #include "globalsearchitemdelegate.h"
 #include "globalsearchsortmodel.h"
+#include "globalsearchtooltip.h"
 #include "globalsearchwidget.h"
 #include "librarysearchprovider.h"
 #include "ui_globalsearchwidget.h"
 #include "core/logging.h"
+#include "core/stylesheetloader.h"
 #include "core/utilities.h"
 #include "playlist/songmimedata.h"
 #include "widgets/stylehelper.h"
@@ -31,14 +33,17 @@
 # include "spotifysearchprovider.h"
 #endif
 
+#include <QDesktopWidget>
 #include <QListView>
 #include <QPainter>
+#include <QSettings>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 
 
 const int GlobalSearchWidget::kMinVisibleItems = 3;
-const int GlobalSearchWidget::kMaxVisibleItems = 12;
+const int GlobalSearchWidget::kMaxVisibleItems = 25;
+const char* GlobalSearchWidget::kSettingsGroup = "GlobalSearch";
 
 
 GlobalSearchWidget::GlobalSearchWidget(QWidget* parent)
@@ -51,14 +56,20 @@ GlobalSearchWidget::GlobalSearchWidget(QWidget* parent)
     proxy_(new GlobalSearchSortModel(this)),
     view_(new QListView),
     eat_focus_out_(false),
-    background_(":allthethings.png")
+    background_(":allthethings.png"),
+    desktop_(qApp->desktop()),
+    combine_identical_results_(true)
 {
   ui_->setupUi(this);
+  ReloadSettings();
 
+  // Set up the sorting proxy model
   proxy_->setSourceModel(model_);
   proxy_->setDynamicSortFilter(true);
   proxy_->sort(0);
 
+  // Set up the popup
+  view_->setObjectName("popup");
   view_->setWindowFlags(Qt::Popup);
   view_->setFocusPolicy(Qt::NoFocus);
   view_->setFocusProxy(ui_->search);
@@ -69,6 +80,12 @@ GlobalSearchWidget::GlobalSearchWidget(QWidget* parent)
   view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   view_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
+  ui_->search->installEventFilter(this);
+
+  // Load style sheets
+  StyleSheetLoader* style_loader = new StyleSheetLoader(this);
+  style_loader->SetStyleSheet(this, ":globalsearch.css");
+
   connect(ui_->search, SIGNAL(textEdited(QString)), SLOT(TextEdited(QString)));
   connect(engine_, SIGNAL(ResultsAvailable(int,SearchProvider::ResultList)),
           SLOT(AddResults(int,SearchProvider::ResultList)));
@@ -76,6 +93,8 @@ GlobalSearchWidget::GlobalSearchWidget(QWidget* parent)
   connect(engine_, SIGNAL(ArtLoaded(int,QPixmap)), SLOT(ArtLoaded(int,QPixmap)));
   connect(engine_, SIGNAL(TracksLoaded(int,MimeData*)), SLOT(TracksLoaded(int,MimeData*)));
   connect(view_, SIGNAL(doubleClicked(QModelIndex)), SLOT(AddCurrent()));
+  connect(view_->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+          SLOT(UpdateTooltip()));
 }
 
 GlobalSearchWidget::~GlobalSearchWidget() {
@@ -85,7 +104,8 @@ GlobalSearchWidget::~GlobalSearchWidget() {
 void GlobalSearchWidget::Init(LibraryBackendInterface* library) {
   // Add providers
   engine_->AddProvider(new LibrarySearchProvider(
-      library, tr("Library"), IconLoader::Load("folder-sound"), engine_));
+      library, tr("Library"), "library",
+      IconLoader::Load("folder-sound"), engine_));
 
 #ifdef HAVE_SPOTIFY
   engine_->AddProvider(new SpotifySearchProvider(engine_));
@@ -94,7 +114,8 @@ void GlobalSearchWidget::Init(LibraryBackendInterface* library) {
   // The style helper's base color doesn't get initialised until after the
   // constructor.
   QPalette view_palette = view_->palette();
-  view_palette.setColor(QPalette::Text, Qt::white);
+  view_palette.setColor(QPalette::Text, Utils::StyleHelper::panelTextColor());
+  view_palette.setColor(QPalette::HighlightedText, QColor(60, 60, 60));
   view_palette.setColor(QPalette::Base, Utils::StyleHelper::shadowColor().darker(109));
 
   QFont view_font = view_->font();
@@ -176,7 +197,8 @@ void GlobalSearchWidget::AddResults(int id, const SearchProvider::ResultList& re
 
   foreach (const SearchProvider::Result& result, results) {
     QStandardItem* item = new QStandardItem;
-    item->setData(QVariant::fromValue(result), Role_Result);
+    item->setData(QVariant::fromValue(result), Role_PrimaryResult);
+    item->setData(QVariant::fromValue(SearchProvider::ResultList() << result), Role_AllResults);
 
     QPixmap pixmap;
     if (engine_->FindCachedPixmap(result, &pixmap)) {
@@ -184,6 +206,39 @@ void GlobalSearchWidget::AddResults(int id, const SearchProvider::ResultList& re
     }
 
     model_->appendRow(item);
+
+    if (combine_identical_results_) {
+      // Maybe we can combine this result with an identical result from another
+      // provider.  Only look at the results above and below this one in the
+      // sorted model.
+      QModelIndex my_proxy_index = proxy_->mapFromSource(item->index());
+      QModelIndexList candidates;
+      candidates << my_proxy_index.sibling(my_proxy_index.row() - 1, 0)
+                 << my_proxy_index.sibling(my_proxy_index.row() + 1, 0);
+
+      foreach (const QModelIndex& index, candidates) {
+        if (!index.isValid())
+          continue;
+
+        CombineAction action = CanCombineResults(my_proxy_index, index);
+
+        switch (action) {
+        case CannotCombine:
+          continue;
+
+        case LeftPreferred:
+          CombineResults(my_proxy_index, index);
+          break;
+
+        case RightPreferred:
+          CombineResults(index, my_proxy_index);
+          break;
+        }
+
+        // We've just invalidated the indexes so we have to stop.
+        break;
+      }
+    }
   }
 
   RepositionPopup();
@@ -191,7 +246,7 @@ void GlobalSearchWidget::AddResults(int id, const SearchProvider::ResultList& re
 
 void GlobalSearchWidget::RepositionPopup() {
   if (model_->rowCount() == 0) {
-    view_->hide();
+    HidePopup();
     return;
   }
 
@@ -199,7 +254,11 @@ void GlobalSearchWidget::RepositionPopup() {
       qBound(kMinVisibleItems, model_->rowCount(), kMaxVisibleItems));
   int w = ui_->search->width();
 
-  QPoint pos = ui_->search->mapToGlobal(ui_->search->rect().bottomLeft());
+  const QPoint pos = ui_->search->mapToGlobal(ui_->search->rect().bottomLeft());
+
+  // Shrink the popup if it would otherwise go off the screen
+  const QRect screen = desktop_->availableGeometry(ui_->search);
+  h = qMin(h, screen.bottom() - pos.y());
 
   view_->setGeometry(QRect(pos, QSize(w, h)));
 
@@ -210,15 +269,37 @@ void GlobalSearchWidget::RepositionPopup() {
 }
 
 bool GlobalSearchWidget::eventFilter(QObject* o, QEvent* e) {
-  // Most of this is borrowed from QCompleter::eventFilter
+  if (o == ui_->search)
+    return EventFilterSearchWidget(o, e);
 
-  if (eat_focus_out_ && o == ui_->search && e->type() == QEvent::FocusOut) {
-    if (view_->isVisible())
+  if (o == view_)
+    return EventFilterPopup(o, e);
+
+  return QWidget::eventFilter(o, e);
+}
+
+bool GlobalSearchWidget::EventFilterSearchWidget(QObject* o, QEvent* e) {
+  switch (e->type()) {
+  case QEvent::FocusOut:
+    if (eat_focus_out_ && view_->isVisible())
       return true;
+    break;
+
+  case QEvent::FocusIn:
+  case QEvent::MouseButtonPress:
+    if (!ui_->search->text().isEmpty())
+      RepositionPopup();
+    break;
+
+  default:
+    break;
   }
 
-  if (o != view_)
-    return QWidget::eventFilter(o, e);
+  return QWidget::eventFilter(o, e);
+}
+
+bool GlobalSearchWidget::EventFilterPopup(QObject*, QEvent* e) {
+  // Most of this is borrowed from QCompleter::eventFilter
 
   switch (e->type()) {
   case QEvent::KeyPress: {
@@ -268,7 +349,7 @@ bool GlobalSearchWidget::eventFilter(QObject* o, QEvent* e) {
     if (e->isAccepted() || !view_->isVisible()) {
       // widget lost focus, hide the popup
       if (!ui_->search->hasFocus())
-        view_->hide();
+        HidePopup();
       if (e->isAccepted())
         return true;
     }
@@ -278,18 +359,18 @@ bool GlobalSearchWidget::eventFilter(QObject* o, QEvent* e) {
     case Qt::Key_Return:
     case Qt::Key_Enter:
     case Qt::Key_Tab:
-      view_->hide();
+      HidePopup();
       AddCurrent();
       break;
 
     case Qt::Key_F4:
       if (ke->modifiers() & Qt::AltModifier)
-        view_->hide();
+        HidePopup();
       break;
 
     case Qt::Key_Backtab:
     case Qt::Key_Escape:
-      view_->hide();
+      HidePopup();
       break;
 
     default:
@@ -301,7 +382,7 @@ bool GlobalSearchWidget::eventFilter(QObject* o, QEvent* e) {
 
   case QEvent::MouseButtonPress:
     if (!view_->underMouse()) {
-      view_->hide();
+      HidePopup();
       return true;
     }
     return false;
@@ -332,7 +413,7 @@ void GlobalSearchWidget::LazyLoadArt(const QModelIndex& proxy_index) {
   model_->itemFromIndex(source_index)->setData(true, Role_LazyLoadingArt);
 
   const SearchProvider::Result result =
-      source_index.data(Role_Result).value<SearchProvider::Result>();
+      source_index.data(Role_PrimaryResult).value<SearchProvider::Result>();
 
   int id = engine_->LoadArtAsync(result);
   art_requests_[id] = source_index;
@@ -354,8 +435,7 @@ void GlobalSearchWidget::AddCurrent() {
   if (!index.isValid())
     return;
 
-  engine_->LoadTracksAsync(index.data(Role_Result).value<SearchProvider::Result>());
-  static_cast<LineEditInterface*>(ui_->search)->clear();
+  engine_->LoadTracksAsync(index.data(Role_PrimaryResult).value<SearchProvider::Result>());
 }
 
 void GlobalSearchWidget::TracksLoaded(int id, MimeData* mime_data) {
@@ -368,3 +448,93 @@ void GlobalSearchWidget::TracksLoaded(int id, MimeData* mime_data) {
   emit AddToPlaylist(mime_data);
 }
 
+void GlobalSearchWidget::ReloadSettings() {
+  QSettings s;
+  s.beginGroup(kSettingsGroup);
+
+  combine_identical_results_ = s.value("combine_identical_results", true).toBool();
+  provider_order_ = s.value("provider_order", QStringList() << "library").toStringList();
+}
+
+GlobalSearchWidget::CombineAction GlobalSearchWidget::CanCombineResults(
+      const QModelIndex& left, const QModelIndex& right) const {
+  const SearchProvider::Result r1 = left.data(Role_PrimaryResult)
+      .value<SearchProvider::Result>();
+  const SearchProvider::Result r2 = right.data(Role_PrimaryResult)
+      .value<SearchProvider::Result>();
+
+  if (r1.match_quality_ != r2.match_quality_ || r1.type_ != r2.type_)
+    return CannotCombine;
+
+#define StringsDiffer(field) \
+  (QString::compare(r1.metadata_.field(), r2.metadata_.field(), Qt::CaseInsensitive) != 0)
+
+  switch (r1.type_) {
+  case SearchProvider::Result::Type_Track:
+    if (StringsDiffer(title))
+      return CannotCombine;
+    // fallthrough
+  case SearchProvider::Result::Type_Album:
+    if (StringsDiffer(album) || StringsDiffer(artist))
+      return CannotCombine;
+    break;
+  }
+
+#undef StringsDiffer
+
+  // They look the same - decide which provider we like best.
+  const int p1 = provider_order_.indexOf(r1.provider_->id());
+  const int p2 = provider_order_.indexOf(r2.provider_->id());
+
+  return p2 > p1 ? RightPreferred : LeftPreferred;
+}
+
+void GlobalSearchWidget::CombineResults(const QModelIndex& superior, const QModelIndex& inferior) {
+  QStandardItem* superior_item = model_->itemFromIndex(proxy_->mapToSource(superior));
+  QStandardItem* inferior_item = model_->itemFromIndex(proxy_->mapToSource(inferior));
+
+  SearchProvider::ResultList superior_results =
+      superior_item->data(Role_AllResults).value<SearchProvider::ResultList>();
+  SearchProvider::ResultList inferior_results =
+      inferior_item->data(Role_AllResults).value<SearchProvider::ResultList>();
+
+  superior_results.append(inferior_results);
+  superior_item->setData(QVariant::fromValue(superior_results), Role_AllResults);
+
+  model_->invisibleRootItem()->removeRow(inferior_item->row());
+}
+
+void GlobalSearchWidget::HidePopup() {
+  if (tooltip_)
+    tooltip_->hide();
+  view_->hide();
+}
+
+void GlobalSearchWidget::UpdateTooltip() {
+  if (!view_->isVisible()) {
+    if (tooltip_)
+      tooltip_->hide();
+    return;
+  }
+
+  const QModelIndex current = view_->selectionModel()->currentIndex();
+  if (!current.isValid())
+    return;
+
+  const SearchProvider::ResultList results = current.data(Role_AllResults)
+      .value<SearchProvider::ResultList>();
+
+  if (!tooltip_) {
+    tooltip_.reset(new GlobalSearchTooltip(view_));
+    tooltip_->setFont(view_->font());
+    tooltip_->setPalette(view_->palette());
+  }
+
+  const QRect item_rect = view_->visualRect(current);
+  const QPoint popup_pos = item_rect.topRight() +
+      QPoint(-GlobalSearchTooltip::kArrowWidth,
+             item_rect.height() / 2);
+
+  tooltip_->SetResults(results);
+  tooltip_->ShowAt(view_->mapToGlobal(popup_pos));
+}

@@ -15,30 +15,35 @@
    along with Clementine.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef GLOBALSEARCHITEMDELEGATE_H
-#define GLOBALSEARCHITEMDELEGATE_H
+#ifndef TOOLTIPACTIONWIDGET_H
+#define TOOLTIPACTIONWIDGET_H
 
-#include <QStyledItemDelegate>
+#include <QWidget>
 
-class GlobalSearchWidget;
+class TooltipActionWidget : public QWidget {
+  Q_OBJECT
 
-
-class GlobalSearchItemDelegate : public QStyledItemDelegate {
 public:
-  GlobalSearchItemDelegate(GlobalSearchWidget* widget);
+  TooltipActionWidget(QWidget* parent = 0);
 
-  static const int kHeight;
-  static const int kMargin;
-  static const int kArtMargin;
-  static const int kProviderIconSize;
+  static const int kBorder;
+  static const int kSpacing;
 
-  QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const;
-  void paint(QPainter* painter, const QStyleOptionViewItem& option,
-             const QModelIndex& index) const;
+  void SetActions(QList<QAction*> actions);
+
+  QSize sizeHint() const { return size_hint_; }
+
+protected:
+  void paintEvent(QPaintEvent*);
+  void mousePressEvent(QMouseEvent* e);
 
 private:
-  GlobalSearchWidget* widget_;
-  QPixmap no_cover_;
+  const int kTextHeight;
+
+  QList<QAction*> actions_;
+  QSize size_hint_;
+  int shortcut_width_;
+  int description_width_;
 };
 
-#endif // GLOBALSEARCHITEMDELEGATE_H
+#endif // TOOLTIPACTIONWIDGET_H
