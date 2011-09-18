@@ -2,16 +2,18 @@
 # Lines that start with '#' are comments.
 # For a project mostly in C, the following would be a good set of
 # exclude patterns (uncomment them if you want to use them):
-# *.[oa]
-# *~
+*.[oa]
+*~
 *.pyc
 *.dll
 *.exe
 *.pyd
+*.kdev4
 3rdparty/libprojectm/config.inp
 3rdparty/libprojectm/libprojectM.pc
 CMakeLists.txt.user
 bin/
+build/
 dist/Info.plist
 dist/clementine.spec
 dist/maketarball.sh
@@ -38,3 +40,4 @@ debian/changelog
 *.tmp
 dist/windows/DLLs
 dist/windows/Python27.zip
+.directory
