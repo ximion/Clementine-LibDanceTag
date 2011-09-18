@@ -282,9 +282,10 @@ MainWindow::MainWindow(
   organise_dialog_->SetDestinationModel(library_->model()->directory_model());
   
   // Initialize DanceTag module
-  dtprovider_ = new DanceTagProvider(this);
-  qDebug() << "HHHHHH" << dtprovider_->available();
-  dtprovider_->_test();
+  DanceTagProvider *dtp = get_dtProvider();
+  qLog(Debug) << "Checking if LibDanceTag is available:" << dtp->available();
+  // Just a bit of testing code, can be removed later...
+  dtp->_test();
 
   // Icons
   qLog(Debug) << "Creating UI";
@@ -440,8 +441,8 @@ MainWindow::MainWindow(
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), osd_, SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), player_, SLOT(CurrentMetadataChanged(Song)));
-  if (dtprovider_->available())
-    connect(playlists_, SIGNAL(CurrentSongChanged(Song)), dtprovider_, SLOT(fetchDanceTagFromWeb(Song)));
+  if (get_dtProvider()->available())
+    connect(playlists_, SIGNAL(CurrentSongChanged(Song)), get_dtProvider(), SLOT(fetchDanceTagFromWeb(Song)));
   connect(playlists_, SIGNAL(EditingFinished(QModelIndex)), SLOT(PlaylistEditFinished(QModelIndex)));
   connect(playlists_, SIGNAL(Error(QString)), SLOT(ShowErrorDialog(QString)));
   connect(playlists_, SIGNAL(SummaryTextChanged(QString)), ui_->playlist_summary, SLOT(setText(QString)));
@@ -1924,7 +1925,7 @@ void MainWindow::EnsureSettingsDialogCreated() {
 
   settings_dialog_->SetGlobalShortcutManager(global_shortcuts_);
   settings_dialog_->SetSongInfoView(song_info_view_);
-  settings_dialog_->SetDanceTagProvider(dtprovider_);
+  settings_dialog_->SetDanceTagProvider(get_dtProvider());
 
   // Settings
   connect(settings_dialog_.get(), SIGNAL(accepted()), SLOT(ReloadAllSettings()));

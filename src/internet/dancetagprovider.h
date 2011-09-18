@@ -39,12 +39,14 @@ public:
   void setApiKey(QString key) { apikey = key; }
   QString apiKey() const { return apikey; }
   
+  QString dancesFromFile(const char* fname, bool useWebDB = false);
+
   void _test();
 
 public slots:
-  void fetchDanceTag(const Song& song, bool fromFileOnly = true);
+  void fetchDanceTag(const Song& song, bool useWebDB = false);
   void fetchDanceTags(const SongList& songs);
-  void fetchDanceTagFromWeb(const Song& song) { fetchDanceTag(song, false); }
+  void fetchDanceTagFromWeb(const Song& song) { fetchDanceTag(song, true); }
 
 private:
   QString apikey;
@@ -55,7 +57,9 @@ private:
   
   void* getFunc(QString name);
   void* new_dataprovider();
-  void* new_dtsongfile(const Song& song);
+  void* new_dtsongfile(const gchar* fname);
 };
+
+Q_GLOBAL_STATIC(DanceTagProvider, get_dtProvider);
 
 #endif // DANCETAGPROVIDER_H

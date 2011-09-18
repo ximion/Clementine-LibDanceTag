@@ -69,41 +69,36 @@ bool DanceTagProvider::ready() const
     return false;
 }
 
-void* DanceTagProvider::new_dtsongfile(const Song& song)
+void* DanceTagProvider::new_dtsongfile(const gchar* fname)
 {
    typedef void* (*NewSongFile)(const gchar*, void*);
    NewSongFile _new_dtsong = (NewSongFile) getFunc("song_file_new");
-   const gchar* fname = song.url().encodedPath().data();
    if (QString::fromLatin1(fname) == "")
      return NULL;
-   return _new_dtsong (song.url().encodedPath().data(), data_provider);
+   return _new_dtsong (fname, data_provider);
 }
 
 void var_unused(void* param) {
   // FIXME
 }
 
-void DanceTagProvider::fetchDanceTag(const Song& song, bool fromFileOnly)
+QString DanceTagProvider::dancesFromFile(const char* fname, bool useWebDB)
 {
-  void* dtSong = new_dtsongfile(song);
+  void* dtSong = new_dtsongfile(fname);
   if (!dtSong)
-    return;
+    return "";
 
-  if (!fromFileOnly) {
+  if (useWebDB) {
     qDebug() << "::TODO";
   }
-  
-  qDebug() << "A";
+
   typedef GPtrArray* (*GetDances)(void*);
   GetDances _dt_get_dances = (GetDances) getFunc("song_file_get_dances");
   GPtrArray* danceList = _dt_get_dances (dtSong);
-  qDebug() << "b";
   
+  QString dances = "";
   if (danceList) {
-     QString dances = "";
-     qDebug() << "HERE!!";
       for (uint i = 0; i < danceList->len; i++) {
-	qDebug() << "Alpha";
 	const gchar* dance = (const gchar*) g_ptr_array_index(danceList, i);
 	qDebug() << dance;
 	if (dances != "")
@@ -111,10 +106,17 @@ void DanceTagProvider::fetchDanceTag(const Song& song, bool fromFileOnly)
 	dances += QString::fromLatin1(dance);
       }
     qDebug() << "!!!!!!!!!!!!!! " << dances;
-    //song.set_dances (dances);
+
     g_ptr_array_unref(danceList);
   }
   g_object_unref(dtSong);
+  return dances;
+}
+
+void DanceTagProvider::fetchDanceTag(const Song& song, bool useWebDB)
+{
+  QString dances = dancesFromFile(song.url().encodedPath().data());
+  //song.set_dances (dances);
 }
 
 void DanceTagProvider::fetchDanceTags(const SongList& songs)

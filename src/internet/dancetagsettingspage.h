@@ -20,10 +20,6 @@
 
 #include "ui/settingspage.h"
 
-class QAuthenticator;
-class QNetworkReply;
-
-class NetworkAccessManager;
 class Ui_DanceTagSettingsPage;
 
 class DanceTagSettingsPage : public SettingsPage {

@@ -195,7 +195,7 @@ void SettingsDialog::CurrentTextChanged(const QString& text) {
 
 void SettingsDialog::SetDanceTagProvider(DanceTagProvider* dtp) {
   if(!dtprovider_) {
-    if ((dtp) && (dtp->ready()))
+    if ((dtp) && (dtp->available()))
       AddPage(Page_DanceTag, new DanceTagSettingsPage(this));
   }
   dtprovider_ = dtp;

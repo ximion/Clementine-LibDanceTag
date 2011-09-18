@@ -280,7 +280,6 @@ class MainWindow : public QMainWindow, public PlatformInterface {
   Library* library_;
   GlobalShortcuts* global_shortcuts_;
   Remote* remote_;
-  DanceTagProvider *dtprovider_;
 
   DeviceManager* devices_;
 

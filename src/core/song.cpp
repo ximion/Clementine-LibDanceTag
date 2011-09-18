@@ -73,6 +73,7 @@ using boost::scoped_ptr;
 #include "engines/enginebase.h"
 #include "library/sqlrow.h"
 #include "widgets/trackslider.h"
+#include "internet/dancetagprovider.h"
 
 static QStringList Prepend(const QString& text, const QStringList& list) {
   QStringList ret(list);
@@ -96,7 +97,7 @@ const QStringList Song::kColumns = QStringList()
     << "art_manual" << "filetype" << "playcount" << "lastplayed" << "rating"
     << "forced_compilation_on" << "forced_compilation_off"
     << "effective_compilation" << "skipcount" << "score" << "beginning" << "length"
-    << "cue_path" << "unavailable";
+    << "cue_path" << "unavailable" << "dances";
 
 const QString Song::kColumnSpec = Song::kColumns.join(", ");
 const QString Song::kBindSpec = Prepend(":", Song::kColumns).join(", ");
@@ -302,7 +303,10 @@ void Song::InitFromFile(const QString& filename, int directory_id) {
       // Mark tags where we detect an unusual codec as suspicious.
       d->suspicious_tags_ = true;
     }
-
+    
+    DanceTagProvider *dtp = get_dtProvider();
+    if (dtp->ready())
+      d->dances_ = dtp->dancesFromFile(d->url_.encodedPath().data());
 
     d->title_ = Decode(tag->title());
     d->artist_ = Decode(tag->artist());
