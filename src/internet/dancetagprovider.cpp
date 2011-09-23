@@ -19,8 +19,14 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <QUrl>
+
+#include "core/logging.h"
+#include "core/song.h"
 
 #define DANCETAG_API_VERSION 0
+
+const char* DanceTagProvider::kSettingsGroup = "DanceTag";
 
 DanceTagProvider::DanceTagProvider(QObject* parent)
   : QObject(parent)
@@ -78,18 +84,28 @@ void* DanceTagProvider::new_dtsongfile(const gchar* fname)
    return _new_dtsong (fname, data_provider);
 }
 
-void var_unused(void* param) {
-  // FIXME
+void DanceTagProvider::reloadSettings()
+{
+  // TODO
 }
 
-QString DanceTagProvider::dancesFromFile(const char* fname, bool useWebDB)
+QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
 {
+  if (!available())
+    return "";
+
   void* dtSong = new_dtsongfile(fname);
   if (!dtSong)
     return "";
 
-  if (useWebDB) {
-    qDebug() << "::TODO";
+  if (allowWebDB) {
+    qDebug() << "Searching the web for dances...";
+    // Search the web for dances which match this song
+    typedef bool (*UpdateDancesFromWeb)(void*);
+    UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_update_dance_information_from_web");
+    bool success = _dt_file_update_dances(dtSong);
+    if (!success)
+      qLog(Debug) << "Unable to fetch dance tag for" << fname << "from web.";
   }
 
   typedef GPtrArray* (*GetDances)(void*);
@@ -100,12 +116,14 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool useWebDB)
   if (danceList) {
       for (uint i = 0; i < danceList->len; i++) {
 	const gchar* dance = (const gchar*) g_ptr_array_index(danceList, i);
+	if ((dance == NULL) || (QString(dance) == ""))
+	  continue;
+
 	qDebug() << dance;
 	if (dances != "")
 	  dances += " / ";
 	dances += QString::fromLatin1(dance);
       }
-    qDebug() << "!!!!!!!!!!!!!! " << dances;
 
     g_ptr_array_unref(danceList);
   }
@@ -113,10 +131,18 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool useWebDB)
   return dances;
 }
 
-void DanceTagProvider::fetchDanceTag(const Song& song, bool useWebDB)
+void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
 {
-  QString dances = dancesFromFile(song.url().encodedPath().data());
-  //song.set_dances (dances);
+  QString dances = dancesFromFile(song.url().toString(QUrl::RemoveScheme).toLatin1(), allowWebDB);
+
+  SongList songs;
+  Song newSong = song;
+  qDebug() << "!!!!!!!!!!!!!! " << dances;
+  newSong.set_dances (dances);
+  songs.append(newSong);
+
+  emit songsMetadataChanged(songs);
+  emit songMetadataChanged(newSong);
 }
 
 void DanceTagProvider::fetchDanceTags(const SongList& songs)

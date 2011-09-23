@@ -15,9 +15,6 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="LoginStateWidget" name="login_state" native="true"/>
-   </item>
-   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Tanzmusik-Online.de Account Details</string>
@@ -27,7 +24,7 @@
        <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
       </property>
       <item row="0" column="0">
-       <widget class="QCheckBox" name="enable_dt">
+       <widget class="QCheckBox" name="dt_enabled">
         <property name="text">
          <string>DanceTag service enabled</string>
         </property>
@@ -70,6 +67,15 @@
      <property name="title">
       <string>Options</string>
      </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>CheckBox</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -87,14 +93,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>LoginStateWidget</class>
-   <extends>QWidget</extends>
-   <header>widgets/loginstatewidget.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

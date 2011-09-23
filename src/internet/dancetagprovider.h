@@ -32,6 +32,8 @@ class DanceTagProvider : public QObject {
 
 public:
   DanceTagProvider(QObject* parent = 0);
+  
+  static const char* kSettingsGroup;
 
   bool ready() const;
   bool available() const;
@@ -39,14 +41,20 @@ public:
   void setApiKey(QString key) { apikey = key; }
   QString apiKey() const { return apikey; }
   
-  QString dancesFromFile(const char* fname, bool useWebDB = false);
+  QString dancesFromFile(const char* fname, bool allowWebDB = false);
+
+  void reloadSettings();
 
   void _test();
 
 public slots:
-  void fetchDanceTag(const Song& song, bool useWebDB = false);
+  void fetchDanceTag(const Song& song, bool allowWebDB = false);
   void fetchDanceTags(const SongList& songs);
-  void fetchDanceTagFromWeb(const Song& song) { fetchDanceTag(song, true); }
+  void fetchDanceTagAllowWeb(const Song& song) { fetchDanceTag(song, true); }
+
+signals:
+  void songsMetadataChanged(const SongList& songs);
+  void songMetadataChanged(const Song& song);
 
 private:
   QString apikey;

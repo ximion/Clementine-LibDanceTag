@@ -32,7 +32,7 @@ public:
   void Save();
 
 private slots:
-
+  void enableDanceTag(bool en);
 
 private:
 

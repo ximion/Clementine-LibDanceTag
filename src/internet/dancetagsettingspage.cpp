@@ -17,9 +17,7 @@
 
 #include "dancetagsettingspage.h"
 
-#include "core/network.h"
-#include "magnatuneservice.h"
-#include "internetmodel.h"
+#include "internet/dancetagprovider.h"
 #include "ui_dancetagsettingspage.h"
 
 #include <QMessageBox>
@@ -35,9 +33,8 @@ DanceTagSettingsPage::DanceTagSettingsPage(SettingsDialog* dialog)
 {
   ui_->setupUi(this);
   setWindowIcon(QIcon(":/providers/dancetag.png"));
-
-  //connect(ui_->api_key, SIGNAL(currentIndexChanged(int)), SLOT(MembershipChanged(int)));
-
+  
+  connect(ui_->dt_enabled, SIGNAL(clicked(bool)), this, SLOT(enableDanceTag(bool)));
 }
 
 DanceTagSettingsPage::~DanceTagSettingsPage() {
@@ -45,33 +42,24 @@ DanceTagSettingsPage::~DanceTagSettingsPage() {
 }
 
 void DanceTagSettingsPage::Load() {
-#if 0
   QSettings s;
-  s.beginGroup(DanceTagService::kSettingsGroup);
+  s.beginGroup(DanceTagProvider::kSettingsGroup);
 
-  ui_->membership->setCurrentIndex(s.value("membership", DanceTagService::Membership_None).toInt());
-  ui_->username->setText(s.value("username").toString());
-  ui_->password->setText(s.value("password").toString());
-  ui_->format->setCurrentIndex(s.value("format", DanceTagService::Format_Ogg).toInt());
-  logged_in_ = s.value("logged_in",
-      !ui_->username->text().isEmpty() &&
-      !ui_->password->text().isEmpty()).toBool();
-
-  UpdateLoginState();
-#endif
+  ui_->dt_enabled->setChecked(s.value("enabled").toBool());
+  ui_->api_key->setText(s.value("api_key").toString());
 }
 
 void DanceTagSettingsPage::Save() {
-#if 0
   QSettings s;
-  s.beginGroup(DanceTagService::kSettingsGroup);
+  s.beginGroup(DanceTagProvider::kSettingsGroup);
 
-  s.setValue("membership", ui_->membership->currentIndex());
-  s.setValue("username", ui_->username->text());
-  s.setValue("password", ui_->password->text());
-  s.setValue("format", ui_->format->currentIndex());
-  s.setValue("logged_in", logged_in_);
+  s.setValue("enabled", ui_->dt_enabled->isChecked());
+  s.setValue("api_key", ui_->api_key->text());
 
-  InternetModel::Service<DanceTagService>()->ReloadSettings();
-#endif
+  get_dtProvider()->reloadSettings();
+}
+
+void DanceTagSettingsPage::enableDanceTag(bool en)
+{
+  ui_->login_container->setEnabled(en);
 }
