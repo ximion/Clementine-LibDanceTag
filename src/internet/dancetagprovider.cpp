@@ -22,9 +22,8 @@
 #include <QUrl>
 
 #include "core/logging.h"
+#include "core/scopedgobject.h"
 #include "core/song.h"
-
-#define DANCETAG_API_VERSION 0
 
 const char* DanceTagProvider::kSettingsGroup = "DanceTag";
 
@@ -32,56 +31,56 @@ DanceTagProvider::DanceTagProvider(QObject* parent)
   : QObject(parent)
 {
   // Search for the dancetag library
-  m_libdt = new QLibrary("dancetag", DANCETAG_API_VERSION, this);
-  dt_available = m_libdt->load();
-  apikey = "";
-  apikey = "toapi11";
-  data_provider = new_dataprovider();
+  libdt_ = new QLibrary("dancetag", DanceTagProvider::DANCETAG_API_VERSION, this);
+  available_ = libdt_->load();
+  // For testing
+  apikey_ = "toapi11";
+  data_provider_.reset_without_add(new_dataprovider());
 }
 
-void* DanceTagProvider::getFunc(QString name)
+void* DanceTagProvider::getFunc(const QString& name)
 {
   void* res;
   QString nfo = "dancetag_" + name;
-  res = m_libdt->resolve(nfo.toLatin1());
+  res = libdt_->resolve(nfo.toLatin1());
   return res;
 }
 
-void* DanceTagProvider::new_dataprovider ()
+GObject* DanceTagProvider::new_dataprovider ()
 {
-  typedef void* (*NewDataProvider)();
+  typedef GObject* (*NewDataProvider)();
   NewDataProvider _new_dt = (NewDataProvider) getFunc("data_provider_new");
   
-  typedef void* (*DataProviderSetKey)(void*, const gchar*);
+  typedef GObject* (*DataProviderSetKey)(void*, const gchar*);
   DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
 
-  void* dt = _new_dt();
-  _dt_set_key(dt, apikey.toLatin1());
+  GObject* dt = _new_dt();
+  _dt_set_key(dt, apikey_.toLatin1());
 
   return dt;
 }
 
 bool DanceTagProvider::available() const
 {
-  return dt_available;
+  return available_;
 }
 
 bool DanceTagProvider::ready() const
 {
-  if ((available()) && (apikey != "")
-   && (data_provider))
+  if ((available()) && (!apikey_.isEmpty())
+   && (data_provider_.get()))
     return true;
   else
     return false;
 }
 
-void* DanceTagProvider::new_dtsongfile(const gchar* fname)
+GObject* DanceTagProvider::new_dtsongfile(const gchar* fname)
 {
-   typedef void* (*NewSongFile)(const gchar*, void*);
+   typedef GObject* (*NewSongFile)(const gchar*, GObject*);
    NewSongFile _new_dtsong = (NewSongFile) getFunc("song_file_new");
-   if (QString::fromLatin1(fname) == "")
+   if (QString::fromUtf8(fname).isEmpty())
      return NULL;
-   return _new_dtsong (fname, data_provider);
+   return _new_dtsong (fname, data_provider_.get());
 }
 
 void DanceTagProvider::reloadSettings()
@@ -92,52 +91,55 @@ void DanceTagProvider::reloadSettings()
 QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
 {
   if (!available())
-    return "";
+    return QString();
 
-  void* dtSong = new_dtsongfile(fname);
-  if (!dtSong)
-    return "";
+  ScopedGObject<GObject> dtSong;
+  dtSong.reset_without_add(new_dtsongfile(fname));
+  if (!dtSong.get())
+    return QString();
 
   if (allowWebDB) {
-    qDebug() << "Searching the web for dances...";
+    qLog(Debug) << "Searching the web for dances...";
     // Search the web for dances which match this song
-    typedef bool (*UpdateDancesFromWeb)(void*);
+    typedef bool (*UpdateDancesFromWeb)(GObject*);
     UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_update_dance_information_from_web");
-    bool success = _dt_file_update_dances(dtSong);
+    bool success = _dt_file_update_dances(dtSong.get());
     if (!success)
       qLog(Debug) << "Unable to fetch dance tag for" << fname << "from web.";
   }
 
-  typedef GPtrArray* (*GetDances)(void*);
+  typedef GPtrArray* (*GetDances)(GObject*);
   GetDances _dt_get_dances = (GetDances) getFunc("song_file_get_dances");
-  GPtrArray* danceList = _dt_get_dances (dtSong);
+  GPtrArray* danceList = _dt_get_dances (dtSong.get());
   
-  QString dances = "";
+  QString dances;
   if (danceList) {
       for (uint i = 0; i < danceList->len; i++) {
 	const gchar* dance = (const gchar*) g_ptr_array_index(danceList, i);
-	if ((dance == NULL) || (QString(dance) == ""))
+	if ((dance == NULL) || (!dance[0]))
 	  continue;
 
-	qDebug() << dance;
-	if (dances != "")
+	qLog(Debug) << dance;
+	if (!dances.isEmpty())
 	  dances += " / ";
-	dances += QString::fromLatin1(dance);
+	dances += QString::fromUtf8(dance);
       }
 
     g_ptr_array_unref(danceList);
   }
-  g_object_unref(dtSong);
   return dances;
 }
 
 void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
 {
-  QString dances = dancesFromFile(song.url().toString(QUrl::RemoveScheme).toLatin1(), allowWebDB);
+  if (song.url().scheme() != "file")
+    return;
+
+  QString dances = dancesFromFile(song.url().toLocalFile().toLocal8Bit().constData(), allowWebDB);
 
   SongList songs;
   Song newSong = song;
-  qDebug() << "!!!!!!!!!!!!!! " << dances;
+  qLog(Debug) << "!DanceList: " << dances;
   newSong.set_dances (dances);
   songs.append(newSong);
 
@@ -161,20 +163,21 @@ void DanceTagProvider::_test()
   typedef GPtrArray* (*SearchSongs)(void*, const gchar*, const gchar*, GError**);
   SearchSongs _dt_search = (SearchSongs) getFunc("data_provider_search_songs");
   // Search the dance DB for a song
-  GPtrArray* songList = _dt_search (data_provider, "Robbie Williams", "Feel", NULL);
+  GPtrArray* songList = _dt_search (data_provider_.get(), "Robbie Williams", "Feel", NULL);
 
 
   typedef gchar* (*SongToStr)(void*, bool);
   SongToStr _song_tostr = (SongToStr) getFunc("song_to_string");
 
   if (!songList) {
-    qDebug() << "ERROR!";
+    // TODO
+    qLog(Debug) << "ERROR!";
     return;
   }
 
   for (uint i = 0; i < songList->len; i++) {
     void* item = g_ptr_array_index(songList, i);
-    qDebug() << _song_tostr (item, true);
+    qLog(Debug) << _song_tostr (item, true);
   }
 
   g_ptr_array_unref(songList);

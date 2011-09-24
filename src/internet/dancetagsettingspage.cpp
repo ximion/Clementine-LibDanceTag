@@ -59,7 +59,7 @@ void DanceTagSettingsPage::Save() {
   get_dtProvider()->reloadSettings();
 }
 
-void DanceTagSettingsPage::enableDanceTag(bool en)
+void DanceTagSettingsPage::enableDanceTag(bool enabled)
 {
-  ui_->login_container->setEnabled(en);
+  ui_->login_container->setEnabled(enabled);
 }

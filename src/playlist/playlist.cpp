@@ -276,7 +276,7 @@ QVariant Playlist::data(const QModelIndex& index, int role) const {
         case Column_Score:        return song.score();
 
         case Column_BPM:          return song.bpm();
-	case Column_Dances:       return song.dances();
+        case Column_Dances:       return song.dances();
         case Column_Bitrate:      return song.bitrate();
         case Column_Samplerate:   return song.samplerate();
         case Column_Filename:     return song.url();
@@ -1403,7 +1403,8 @@ void Playlist::SetStreamMetadata(const QUrl& url, const Song& song) {
 
   // Don't update the metadata if it's only a minor change from before
   if (current_item_->Metadata().artist() == song.artist() &&
-      current_item_->Metadata().title() == song.title())
+      current_item_->Metadata().title() == song.title() &&
+      current_item_->Metadata().dances() == song.dances())
     return;
 
   current_item_->SetTemporaryMetadata(song);

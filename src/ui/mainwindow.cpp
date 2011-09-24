@@ -443,7 +443,7 @@ MainWindow::MainWindow(
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), player_, SLOT(CurrentMetadataChanged(Song)));
   if (get_dtProvider()->available()) {
     connect(playlists_, SIGNAL(CurrentSongChanged(Song)), get_dtProvider(), SLOT(fetchDanceTagAllowWeb(Song)));
-    connect(get_dtProvider(), SIGNAL(songsMetadataChanged(SongList)), playlists_->library_backend(), SLOT(AddOrUpdateSongs(SongList)));
+    connect(get_dtProvider(), SIGNAL(songsMetadataChanged(SongList)), library_->backend(), SLOT(AddOrUpdateSongs(SongList)));
     connect(get_dtProvider(), SIGNAL(songMetadataChanged(Song)), playlists_, SLOT(CurrentSongChanged(Song)));
   }
   connect(playlists_, SIGNAL(EditingFinished(QModelIndex)), SLOT(PlaylistEditFinished(QModelIndex)));

@@ -23,6 +23,7 @@
 #include <QObject>
 #include <QLibrary>
 
+#include "core/scopedgobject.h"
 #include "core/song.h"
 
 class MimeData;
@@ -38,8 +39,8 @@ public:
   bool ready() const;
   bool available() const;
   
-  void setApiKey(QString key) { apikey = key; }
-  QString apiKey() const { return apikey; }
+  void setApiKey(const QString& key) { apikey_ = key; }
+  QString apiKey() const { return apikey_; }
   
   QString dancesFromFile(const char* fname, bool allowWebDB = false);
 
@@ -57,15 +58,17 @@ signals:
   void songMetadataChanged(const Song& song);
 
 private:
-  QString apikey;
-  QLibrary *m_libdt;
-  void* data_provider;
+  const static int DANCETAG_API_VERSION = 0;
+
+  QString apikey_;
+  QLibrary *libdt_;
+  ScopedGObject<GObject> data_provider_;
   
-  bool dt_available;
+  bool available_;
   
-  void* getFunc(QString name);
-  void* new_dataprovider();
-  void* new_dtsongfile(const gchar* fname);
+  void* getFunc(const QString& name);
+  GObject* new_dataprovider();
+  GObject* new_dtsongfile(const gchar* fname);
 };
 
 Q_GLOBAL_STATIC(DanceTagProvider, get_dtProvider);

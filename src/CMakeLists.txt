@@ -126,6 +126,8 @@ set(SOURCES
   globalsearch/tooltipactionwidget.cpp
   globalsearch/tooltipresultwidget.cpp
 
+  internet/dancetagprovider.cpp
+  internet/dancetagsettingspage.cpp
   internet/digitallyimportedservice.cpp
   internet/digitallyimportedservicebase.cpp
   internet/digitallyimportedsettingspage.cpp
@@ -151,8 +153,6 @@ set(SOURCES
   internet/skyfmservice.cpp
   internet/somafmservice.cpp
   internet/somafmurlhandler.cpp
-  internet/dancetagprovider.cpp
-  internet/dancetagsettingspage.cpp
 
   library/groupbydialog.cpp
   library/library.cpp
@@ -369,6 +369,8 @@ set(HEADERS
   globalsearch/tooltipactionwidget.h
   globalsearch/tooltipresultwidget.h
 
+  internet/dancetagprovider.h
+  internet/dancetagsettingspage.h
   internet/digitallyimportedservicebase.h
   internet/digitallyimportedsettingspage.h
   internet/icecastbackend.h
@@ -389,8 +391,6 @@ set(HEADERS
   internet/skyfmservice.h
   internet/somafmservice.h
   internet/somafmurlhandler.h
-  internet/dancetagprovider.h
-  internet/dancetagsettingspage.h
 
   library/groupbydialog.h
   library/library.h
@@ -535,13 +535,13 @@ set(UI
   globalsearch/globalsearchpopup.ui
   globalsearch/globalsearchwidget.ui
 
+  internet/dancetagsettingspage.ui
   internet/digitallyimportedsettingspage.ui
   internet/icecastfilterwidget.ui
   internet/internetviewcontainer.ui
   internet/magnatunedownloaddialog.ui
   internet/magnatunesettingspage.ui
   internet/spotifysettingspage.ui
-  internet/dancetagsettingspage.ui
 
   library/groupbydialog.ui
   library/libraryfilterwidget.ui
