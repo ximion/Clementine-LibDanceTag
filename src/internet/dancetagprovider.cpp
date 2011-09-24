@@ -51,11 +51,15 @@ GObject* DanceTagProvider::new_dataprovider ()
   typedef GObject* (*NewDataProvider)();
   NewDataProvider _new_dt = (NewDataProvider) getFunc("data_provider_new");
   
-  typedef GObject* (*DataProviderSetKey)(void*, const gchar*);
+  typedef GObject* (*DataProviderSetKey)(GObject*, const gchar*);
   DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
+  
+  typedef GObject* (*DataProviderSetAgent)(GObject*, const gchar*);
+  DataProviderSetAgent _dt_set_agent = (DataProviderSetKey) getFunc("data_provider_set_useragent");
 
   GObject* dt = _new_dt();
-  _dt_set_key(dt, apikey_.toLatin1());
+  _dt_set_agent(dt, "Clementine");
+  _dt_set_key(dt, apikey_.toUtf8());
 
   return dt;
 }
@@ -93,40 +97,32 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
   if (!available())
     return QString();
 
-  ScopedGObject<GObject> dtSong;
-  dtSong.reset_without_add(new_dtsongfile(fname));
-  if (!dtSong.get())
+  ScopedGObject<GObject> dtFSong;
+  dtFSong.reset_without_add(new_dtsongfile(fname));
+  if (!dtFSong.get())
     return QString();
 
   if (allowWebDB) {
     qLog(Debug) << "Searching the web for dances...";
     // Search the web for dances which match this song
-    typedef bool (*UpdateDancesFromWeb)(GObject*);
-    UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_update_dance_information_from_web");
-    bool success = _dt_file_update_dances(dtSong.get());
+    typedef bool (*UpdateDancesFromWeb)(GObject*, bool, bool);
+    UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_query_web_database");
+    // Load dance info from web and write tag to file, do not override existing (true, false)
+    bool success = _dt_file_update_dances(dtFSong.get(), true, false);
     if (!success)
       qLog(Debug) << "Unable to fetch dance tag for" << fname << "from web.";
   }
 
-  typedef GPtrArray* (*GetDances)(GObject*);
-  GetDances _dt_get_dances = (GetDances) getFunc("song_file_get_dances");
-  GPtrArray* danceList = _dt_get_dances (dtSong.get());
+  typedef GObject* (*GetSong)(GObject*);
+  GetSong _dt_get_song = (GetSong) getFunc("song_file_get_song");
+  ScopedGObject<GObject> dtSong;
+  dtSong.reset_without_add(_dt_get_song (dtFSong.get()));
   
-  QString dances;
-  if (danceList) {
-      for (uint i = 0; i < danceList->len; i++) {
-	const gchar* dance = (const gchar*) g_ptr_array_index(danceList, i);
-	if ((dance == NULL) || (!dance[0]))
-	  continue;
+  typedef const gchar* (*GetDancesStr)(GObject*);
+  GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_get_dances_str");
+  
+  QString dances = QString(_dt_get_dancestr(dtSong.get()));
 
-	qLog(Debug) << dance;
-	if (!dances.isEmpty())
-	  dances += " / ";
-	dances += QString::fromUtf8(dance);
-      }
-
-    g_ptr_array_unref(danceList);
-  }
   return dances;
 }
 
