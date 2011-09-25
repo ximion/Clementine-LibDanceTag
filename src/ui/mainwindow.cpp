@@ -282,10 +282,8 @@ MainWindow::MainWindow(
   organise_dialog_->SetDestinationModel(library_->model()->directory_model());
   
   // Initialize DanceTag module
-  DanceTagProvider *dtp = get_dtProvider();
-  qLog(Debug) << "Checking if LibDanceTag is available:" << dtp->available();
-  // Just a bit of testing code, can be removed later...
-  dtp->_test();
+  DanceTagProvider *dtp = get_dtProvider(this);
+  qLog(Debug) << "Found LibDanceTag:" << dtp->available();
 
   // Icons
   qLog(Debug) << "Creating UI";

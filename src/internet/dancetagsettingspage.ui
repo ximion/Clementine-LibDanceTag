@@ -39,20 +39,20 @@
          <property name="margin">
           <number>0</number>
          </property>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="api_key">
+           <property name="frame">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="apikey_label">
+          <widget class="QLabel" name="label">
            <property name="enabled">
             <bool>false</bool>
            </property>
            <property name="text">
             <string>API-Key:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="api_key">
-           <property name="frame">
-            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -63,15 +63,28 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_2">
+    <widget class="QGroupBox" name="options_box">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>Options</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="write_tags">
         <property name="text">
-         <string>CheckBox</string>
+         <string>Write DanceTag to music-file</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="override_tags">
+        <property name="text">
+         <string>Override existing DanceTag</string>
         </property>
        </widget>
       </item>
@@ -94,5 +107,22 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>write_tags</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>override_tags</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>53</x>
+     <y>243</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>60</x>
+     <y>275</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

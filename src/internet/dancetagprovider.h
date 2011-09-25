@@ -60,17 +60,21 @@ signals:
 private:
   const static int DANCETAG_API_VERSION = 0;
 
-  QString apikey_;
   QLibrary *libdt_;
   ScopedGObject<GObject> data_provider_;
-  
   bool available_;
+  
+  QString apikey_;
+  bool enabled_;
+  bool writeTags_;
+  bool overrideTags_;
   
   void* getFunc(const QString& name);
   GObject* new_dataprovider();
   GObject* new_dtsongfile(const gchar* fname);
 };
 
-Q_GLOBAL_STATIC(DanceTagProvider, get_dtProvider);
+static DanceTagProvider* dtProv = 0;
+DanceTagProvider* get_dtProvider(QObject* parent = 0);
 
 #endif // DANCETAGPROVIDER_H

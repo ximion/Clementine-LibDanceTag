@@ -34,7 +34,7 @@ DanceTagSettingsPage::DanceTagSettingsPage(SettingsDialog* dialog)
   ui_->setupUi(this);
   setWindowIcon(QIcon(":/providers/dancetag.png"));
   
-  connect(ui_->dt_enabled, SIGNAL(clicked(bool)), this, SLOT(enableDanceTag(bool)));
+  connect(ui_->dt_enabled, SIGNAL(toggled(bool)), this, SLOT(enableDanceTag(bool)));
 }
 
 DanceTagSettingsPage::~DanceTagSettingsPage() {
@@ -47,6 +47,8 @@ void DanceTagSettingsPage::Load() {
 
   ui_->dt_enabled->setChecked(s.value("enabled").toBool());
   ui_->api_key->setText(s.value("api_key").toString());
+  ui_->write_tags->setChecked(s.value("write_tags_file", true).toBool());
+  ui_->override_tags->setChecked(s.value("override_tags").toBool());
 }
 
 void DanceTagSettingsPage::Save() {
@@ -55,6 +57,8 @@ void DanceTagSettingsPage::Save() {
 
   s.setValue("enabled", ui_->dt_enabled->isChecked());
   s.setValue("api_key", ui_->api_key->text());
+  s.setValue("write_tags_file", ui_->write_tags->isChecked());
+  s.setValue("override_tags", ui_->override_tags->isChecked());
 
   get_dtProvider()->reloadSettings();
 }
@@ -62,4 +66,5 @@ void DanceTagSettingsPage::Save() {
 void DanceTagSettingsPage::enableDanceTag(bool enabled)
 {
   ui_->login_container->setEnabled(enabled);
+  ui_->options_box->setEnabled(enabled);
 }

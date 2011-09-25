@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <QUrl>
+#include <QSettings>
 
 #include "core/logging.h"
 #include "core/scopedgobject.h"
@@ -33,9 +34,9 @@ DanceTagProvider::DanceTagProvider(QObject* parent)
   // Search for the dancetag library
   libdt_ = new QLibrary("dancetag", DanceTagProvider::DANCETAG_API_VERSION, this);
   available_ = libdt_->load();
-  // For testing
-  apikey_ = "toapi11";
   data_provider_.reset_without_add(new_dataprovider());
+  
+  reloadSettings();
 }
 
 void* DanceTagProvider::getFunc(const QString& name)
@@ -72,7 +73,7 @@ bool DanceTagProvider::available() const
 bool DanceTagProvider::ready() const
 {
   if ((available()) && (!apikey_.isEmpty())
-   && (data_provider_.get()))
+   && (data_provider_.get()) && (enabled_))
     return true;
   else
     return false;
@@ -89,7 +90,13 @@ GObject* DanceTagProvider::new_dtsongfile(const gchar* fname)
 
 void DanceTagProvider::reloadSettings()
 {
-  // TODO
+  QSettings s;
+  s.beginGroup(DanceTagProvider::kSettingsGroup);
+
+  enabled_ = s.value("enabled").toBool();
+  apikey_ = s.value("api_key").toString();
+  writeTags_ = s.value("write_tags_file").toBool();
+  overrideTags_ = s.value("override_tags").toBool();
 }
 
 QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
@@ -102,17 +109,6 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
   if (!dtFSong.get())
     return QString();
 
-  if (allowWebDB) {
-    qLog(Debug) << "Searching the web for dances...";
-    // Search the web for dances which match this song
-    typedef bool (*UpdateDancesFromWeb)(GObject*, bool, bool);
-    UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_query_web_database");
-    // Load dance info from web and write tag to file, do not override existing (true, false)
-    bool success = _dt_file_update_dances(dtFSong.get(), true, false);
-    if (!success)
-      qLog(Debug) << "Unable to fetch dance tag for" << fname << "from web.";
-  }
-
   typedef GObject* (*GetSong)(GObject*);
   GetSong _dt_get_song = (GetSong) getFunc("song_file_get_song");
   ScopedGObject<GObject> dtSong;
@@ -122,6 +118,17 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
   GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_get_dances_str");
   
   QString dances = QString(_dt_get_dancestr(dtSong.get()));
+
+  if ((allowWebDB) && (dances.isEmpty())) {
+    qLog(Debug) << "Searching the web for dances...";
+    // Search the web for dances which match this song
+    typedef bool (*UpdateDancesFromWeb)(GObject*, bool, bool);
+    UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_query_web_database");
+    // Load dance info from web and write tag to file if setting set
+    bool success = _dt_file_update_dances(dtFSong.get(), writeTags_, overrideTags_);
+    if (!success)
+      qLog(Debug) << "Unable to fetch dance-tag for" << fname << "from web.";
+  }
 
   return dances;
 }
@@ -150,32 +157,8 @@ void DanceTagProvider::fetchDanceTags(const SongList& songs)
   }
 }
 
-void DanceTagProvider::_test()
-{
-  if (!ready())
-    return;
-  
-  
-  typedef GPtrArray* (*SearchSongs)(void*, const gchar*, const gchar*, GError**);
-  SearchSongs _dt_search = (SearchSongs) getFunc("data_provider_search_songs");
-  // Search the dance DB for a song
-  GPtrArray* songList = _dt_search (data_provider_.get(), "Robbie Williams", "Feel", NULL);
-
-
-  typedef gchar* (*SongToStr)(void*, bool);
-  SongToStr _song_tostr = (SongToStr) getFunc("song_to_string");
-
-  if (!songList) {
-    // TODO
-    qLog(Debug) << "ERROR!";
-    return;
-  }
-
-  for (uint i = 0; i < songList->len; i++) {
-    void* item = g_ptr_array_index(songList, i);
-    qLog(Debug) << _song_tostr (item, true);
-  }
-
-  g_ptr_array_unref(songList);
-  //g_object_unref (data_provider);
+DanceTagProvider* get_dtProvider(QObject* parent) {
+  if (dtProv == 0)
+    dtProv = new DanceTagProvider(parent);
+  return dtProv;
 }
