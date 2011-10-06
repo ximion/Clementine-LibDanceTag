@@ -70,6 +70,7 @@ private:
   bool overrideTags_;
   
   void* getFunc(const QString& name);
+  bool setDataProviderApiKey(GObject* dt);
   GObject* new_dataprovider();
   GObject* new_dtsongfile(const gchar* fname);
 };

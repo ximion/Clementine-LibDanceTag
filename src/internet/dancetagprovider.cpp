@@ -47,20 +47,27 @@ void* DanceTagProvider::getFunc(const QString& name)
   return res;
 }
 
+bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
+{
+  typedef GObject* (*DataProviderSetKey)(GObject*, const gchar*);
+  DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
+
+  _dt_set_key(dt, apikey_.toUtf8());
+  
+  return true;
+}
+
 GObject* DanceTagProvider::new_dataprovider ()
 {
   typedef GObject* (*NewDataProvider)();
   NewDataProvider _new_dt = (NewDataProvider) getFunc("data_provider_new");
   
-  typedef GObject* (*DataProviderSetKey)(GObject*, const gchar*);
-  DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
-  
   typedef GObject* (*DataProviderSetAgent)(GObject*, const gchar*);
-  DataProviderSetAgent _dt_set_agent = (DataProviderSetKey) getFunc("data_provider_set_useragent");
+  DataProviderSetAgent _dt_set_agent = (DataProviderSetAgent) getFunc("data_provider_set_useragent");
 
   GObject* dt = _new_dt();
   _dt_set_agent(dt, "Clementine");
-  _dt_set_key(dt, apikey_.toUtf8());
+  setDataProviderApiKey(dt);
 
   return dt;
 }
@@ -97,6 +104,8 @@ void DanceTagProvider::reloadSettings()
   apikey_ = s.value("api_key").toString();
   writeTags_ = s.value("write_tags_file").toBool();
   overrideTags_ = s.value("override_tags").toBool();
+  
+  setDataProviderApiKey(data_provider_.get());
 }
 
 QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
@@ -126,7 +135,12 @@ QString DanceTagProvider::dancesFromFile(const char* fname, bool allowWebDB)
     UpdateDancesFromWeb _dt_file_update_dances = (UpdateDancesFromWeb) getFunc("song_file_query_web_database");
     // Load dance info from web and write tag to file if setting set
     bool success = _dt_file_update_dances(dtFSong.get(), writeTags_, overrideTags_);
-    if (!success)
+    if (success) {
+      // Reload the song object
+      dtSong.reset_without_add(_dt_get_song (dtFSong.get()));
+      // Reload dances
+      dances = QString(_dt_get_dancestr(dtSong.get()));
+    } else
       qLog(Debug) << "Unable to fetch dance-tag for" << fname << "from web.";
   }
 
