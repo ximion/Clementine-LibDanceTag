@@ -27,6 +27,7 @@
 #include "core/song.h"
 
 class MimeData;
+typedef struct _GCancellable GCancellable;
 
 class DanceTagProvider : public QObject {
   Q_OBJECT
@@ -74,6 +75,7 @@ private:
   bool overrideTags_;
 
   Song currentSong_;
+  GCancellable *currentCancellable_;
 
   bool setDataProviderApiKey(GObject* dt);
   GObject* new_dataprovider();

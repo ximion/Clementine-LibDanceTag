@@ -40,6 +40,7 @@ DanceTagProvider::DanceTagProvider(QObject* parent)
   libdt_ = new QLibrary("dancetag", DanceTagProvider::DANCETAG_API_VERSION, this);
   available_ = libdt_->load();
   data_provider_.reset_without_add(new_dataprovider());
+  currentCancellable_ = NULL;
   
   reloadSettings();
 }
@@ -186,9 +187,18 @@ void DanceTagProvider::queryDancesFromFile(const char* fname, bool allowWebDB)
 
   if ((allowWebDB) && (dances.isEmpty())) {
     qLog(Debug) << "Searching the web for dances...";
+    
+    if (currentCancellable_ != NULL) {
+      // Cancel prefious action
+      g_cancellable_cancel (currentCancellable_);
+      g_object_unref (currentCancellable_);
+    }
+    currentCancellable_ = g_cancellable_new ();
+
     // Search the web for dances which match this song
     // (Load dance info from web and write tag to file if setting set)
-    _dt_file_query_db(dtFSong.get(), writeTags_, overrideTags_, NULL, song_file_query_web_database_finish, this);
+    _dt_file_query_db(dtFSong.get(), writeTags_, overrideTags_,
+		      currentCancellable_, song_file_query_web_database_finish, this);
   }
 }
 

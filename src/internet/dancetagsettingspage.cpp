@@ -33,6 +33,7 @@ DanceTagSettingsPage::DanceTagSettingsPage(SettingsDialog* dialog)
 {
   ui_->setupUi(this);
   setWindowIcon(QIcon(":/providers/dancetag.png"));
+  ui_->tmo_image->setPixmap(QPixmap(":tmo-banner.jpg"));
   
   connect(ui_->dt_enabled, SIGNAL(toggled(bool)), this, SLOT(enableDanceTag(bool)));
 }

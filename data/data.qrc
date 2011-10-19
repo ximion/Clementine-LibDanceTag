@@ -315,7 +315,7 @@
         <file>schema/schema-30.sql</file>
         <file>schema/schema-31.sql</file>
         <file>schema/schema-32.sql</file>
-	<file>schema/schema-35.sql</file>
+        <file>schema/schema-35.sql</file>
         <file>icons/22x22/edit-find.png</file>
         <file>icons/32x32/edit-find.png</file>
         <file>icons/48x48/edit-find.png</file>
@@ -347,5 +347,6 @@
         <file>providers/digitallyimported-32.png</file>
         <file>allthethings.png</file>
         <file>globalsearch.css</file>
+        <file>tmo-banner.jpg</file>
     </qresource>
 </RCC>
