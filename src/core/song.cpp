@@ -306,7 +306,7 @@ void Song::InitFromFile(const QString& filename, int directory_id) {
     
     DanceTagProvider *dtp = get_dtProvider();
     if (dtp->ready())
-      d->dances_ = dtp->dancesFromFile(d->url_.encodedPath().data());
+      d->dances_ = dtp->getDancesFromFile(d->url_.encodedPath().data());
 
     d->title_ = Decode(tag->title());
     d->artist_ = Decode(tag->artist());

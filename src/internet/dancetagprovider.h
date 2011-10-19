@@ -38,19 +38,23 @@ public:
 
   bool ready() const;
   bool available() const;
-  
+
   void setApiKey(const QString& key) { apikey_ = key; }
   QString apiKey() const { return apikey_; }
-  
-  QString dancesFromFile(const char* fname, bool allowWebDB = false);
+
+  void queryDancesFromFile(const char* fname, bool allowWebDB = false);
+  QString getDancesFromFile(const char* fname);
 
   void reloadSettings();
 
-  void _test();
+  // Please don't use these functions outside of DanceTagProvider!
+  void* getFunc(const QString& name);
+  Song currentSong() const { return currentSong_; }
+  void setCurrentSong(Song s) { currentSong_ = s; }
+  void emitSongDataChanged (Song s);
 
 public slots:
   void fetchDanceTag(const Song& song, bool allowWebDB = false);
-  void fetchDanceTags(const SongList& songs);
   void fetchDanceTagAllowWeb(const Song& song) { fetchDanceTag(song, true); }
 
 signals:
@@ -68,8 +72,9 @@ private:
   bool enabled_;
   bool writeTags_;
   bool overrideTags_;
-  
-  void* getFunc(const QString& name);
+
+  Song currentSong_;
+
   bool setDataProviderApiKey(GObject* dt);
   GObject* new_dataprovider();
   GObject* new_dtsongfile(const gchar* fname);
