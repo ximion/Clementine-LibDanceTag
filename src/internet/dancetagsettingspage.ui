@@ -124,7 +124,8 @@
            <property name="text">
             <string>Dance type information is provided by the
 &quot;Tanzmusik-Online.de&quot; database.
-You will need an API key to get this feature to work.</string>
+You will need an API key to access the database.
+</string>
            </property>
           </widget>
          </item>

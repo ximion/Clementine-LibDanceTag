@@ -282,7 +282,7 @@ MainWindow::MainWindow(
   organise_dialog_->SetDestinationModel(library_->model()->directory_model());
   
   // Initialize DanceTag module
-  DanceTagProvider *dtp = get_dtProvider(this);
+  DanceTagProvider *dtp = DanceTagProvider::getInstance(this);
   qLog(Debug) << "Found LibDanceTag:" << dtp->available();
 
   // Icons
@@ -439,10 +439,9 @@ MainWindow::MainWindow(
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), osd_, SLOT(SongChanged(Song)));
   connect(playlists_, SIGNAL(CurrentSongChanged(Song)), player_, SLOT(CurrentMetadataChanged(Song)));
-  if (get_dtProvider()->available()) {
-    connect(playlists_, SIGNAL(CurrentSongChanged(Song)), get_dtProvider(), SLOT(fetchDanceTagAllowWeb(Song)));
-    connect(get_dtProvider(), SIGNAL(songsMetadataChanged(SongList)), library_->backend(), SLOT(AddOrUpdateSongs(SongList)));
-    connect(get_dtProvider(), SIGNAL(songMetadataChanged(Song)), playlists_, SLOT(CurrentSongChanged(Song)));
+  if (DanceTagProvider::getInstance()->available()) {
+    connect(playlists_, SIGNAL(CurrentSongChanged(Song)), DanceTagProvider::getInstance(), SLOT(fetchDanceTagAllowWeb(Song)));
+    connect(DanceTagProvider::getInstance(), SIGNAL(songsMetadataChanged(SongList)), library_->backend(), SLOT(AddOrUpdateSongs(SongList)));
   }
   connect(playlists_, SIGNAL(EditingFinished(QModelIndex)), SLOT(PlaylistEditFinished(QModelIndex)));
   connect(playlists_, SIGNAL(Error(QString)), SLOT(ShowErrorDialog(QString)));
@@ -781,6 +780,9 @@ MainWindow::~MainWindow() {
   // Deleting the database deletes all objects that have been created in its
   // thread, including some device library backends.
   delete devices_; devices_ = NULL;
+  
+  // Make sure DanceTagProvider is gone
+  DanceTagProvider::deleteInstance();
 }
 
 void MainWindow::ReloadSettings() {
@@ -1926,7 +1928,7 @@ void MainWindow::EnsureSettingsDialogCreated() {
 
   settings_dialog_->SetGlobalShortcutManager(global_shortcuts_);
   settings_dialog_->SetSongInfoView(song_info_view_);
-  settings_dialog_->SetDanceTagProvider(get_dtProvider());
+  settings_dialog_->SetDanceTagProvider(DanceTagProvider::getInstance());
 
   // Settings
   connect(settings_dialog_.get(), SIGNAL(accepted()), SLOT(ReloadAllSettings()));

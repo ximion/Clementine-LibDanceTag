@@ -61,7 +61,7 @@ void DanceTagSettingsPage::Save() {
   s.setValue("write_tags_file", ui_->write_tags->isChecked());
   s.setValue("override_tags", ui_->override_tags->isChecked());
 
-  get_dtProvider()->reloadSettings();
+  DanceTagProvider::getInstance()->reloadSettings();
 }
 
 void DanceTagSettingsPage::enableDanceTag(bool enabled)

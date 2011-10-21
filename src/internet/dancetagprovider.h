@@ -48,6 +48,9 @@ public:
 
   void reloadSettings();
 
+  static DanceTagProvider *getInstance(QObject* parent = 0);
+  static void deleteInstance();
+
   // Please don't use these functions outside of DanceTagProvider!
   void* getFunc(const QString& name);
   Song currentSong() const { return currentSong_; }
@@ -64,6 +67,7 @@ signals:
 
 private:
   const static int DANCETAG_API_VERSION = 0;
+  static DanceTagProvider* instance_;
 
   QLibrary *libdt_;
   ScopedGObject<GObject> data_provider_;
@@ -81,8 +85,5 @@ private:
   GObject* new_dataprovider();
   GObject* new_dtsongfile(const gchar* fname);
 };
-
-static DanceTagProvider* dtProv = 0;
-DanceTagProvider* get_dtProvider(QObject* parent = 0);
 
 #endif // DANCETAGPROVIDER_H

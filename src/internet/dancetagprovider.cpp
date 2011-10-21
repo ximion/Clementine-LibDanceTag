@@ -32,6 +32,7 @@
 #include "core/song.h"
 
 const char* DanceTagProvider::kSettingsGroup = "DanceTag";
+DanceTagProvider* DanceTagProvider::instance_ = 0;
 
 DanceTagProvider::DanceTagProvider(QObject* parent)
   : QObject(parent)
@@ -222,6 +223,9 @@ QString DanceTagProvider::getDancesFromFile(const char* fname)
 
 void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
 {
+  if (!ready())
+    return;
+
   if (song.url().scheme() != "file")
     return;
   
@@ -232,8 +236,14 @@ void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
   queryDancesFromFile(song.url().toLocalFile().toLocal8Bit().constData(), allowWebDB);
 }
 
-DanceTagProvider* get_dtProvider(QObject* parent) {
-  if (dtProv == 0)
-    dtProv = new DanceTagProvider(parent);
-  return dtProv;
+DanceTagProvider* DanceTagProvider::getInstance(QObject* parent) {
+  if (instance_ == 0)
+    instance_ = new DanceTagProvider(parent);
+  return instance_;
+}
+
+void DanceTagProvider::deleteInstance()
+{
+  delete instance_;
+  instance_ = 0;
 }

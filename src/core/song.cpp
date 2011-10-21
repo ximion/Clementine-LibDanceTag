@@ -304,7 +304,7 @@ void Song::InitFromFile(const QString& filename, int directory_id) {
       d->suspicious_tags_ = true;
     }
     
-    DanceTagProvider *dtp = get_dtProvider();
+    DanceTagProvider *dtp = DanceTagProvider::getInstance();
     if (dtp->ready())
       d->dances_ = dtp->getDancesFromFile(d->url_.encodedPath().data());
 
