@@ -34,6 +34,15 @@
 const char* DanceTagProvider::kSettingsGroup = "DanceTag";
 DanceTagProvider* DanceTagProvider::instance_ = 0;
 
+// Define types for LibDanceTag Methods
+typedef GObject* (*NewDataProvider)();
+typedef GObject* (*DataProviderSetKey)(GObject*, const gchar*);
+typedef GObject* (*DataProviderSetAgent)(GObject*, const gchar*);
+typedef GObject* (*NewSongFile)(const gchar*, GObject*);
+typedef const gchar* (*GetDancesStr)(GObject*);
+typedef void (*QueryDancesFromWeb)(GObject*, bool, bool, GCancellable*, GAsyncReadyCallback, DanceTagProvider*);
+typedef gboolean (*QueryDancesFromWeb_Finish)(GObject*, GAsyncResult*, GError**);
+
 DanceTagProvider::DanceTagProvider(QObject* parent)
   : QObject(parent)
 {
@@ -56,7 +65,6 @@ void* DanceTagProvider::getFunc(const QString& name)
 
 bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
 {
-  typedef GObject* (*DataProviderSetKey)(GObject*, const gchar*);
   DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
 
   _dt_set_key(dt, apikey_.toUtf8());
@@ -66,10 +74,7 @@ bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
 
 GObject* DanceTagProvider::new_dataprovider ()
 {
-  typedef GObject* (*NewDataProvider)();
   NewDataProvider _new_dt = (NewDataProvider) getFunc("data_provider_new");
-  
-  typedef GObject* (*DataProviderSetAgent)(GObject*, const gchar*);
   DataProviderSetAgent _dt_set_agent = (DataProviderSetAgent) getFunc("data_provider_set_useragent");
 
   GObject* dt = _new_dt();
@@ -95,7 +100,6 @@ bool DanceTagProvider::ready() const
 
 GObject* DanceTagProvider::new_dtsongfile(const gchar* fname)
 {
-   typedef GObject* (*NewSongFile)(const gchar*, GObject*);
    NewSongFile _new_dtsong = (NewSongFile) getFunc("song_file_new");
 
    if (QString::fromUtf8(fname).isEmpty())
@@ -125,10 +129,8 @@ static void song_file_query_web_database_finish (GObject* dtfile, GAsyncResult* 
     return;
   }
 
-  typedef gboolean (*QueryDancesFromWeb_Finish)(GObject*, GAsyncResult*, GError**);
   QueryDancesFromWeb_Finish _dt_query_finish = (QueryDancesFromWeb_Finish) self->getFunc("song_file_query_web_database_finish");
-  
-  typedef const gchar* (*GetDancesStr)(GObject*);
+
   GetDancesStr _dt_get_dancestr = (GetDancesStr) self->getFunc("song_file_get_song_dances_str");
   
   bool success = _dt_query_finish (dtfile, res, &error);
@@ -172,11 +174,9 @@ void DanceTagProvider::queryDancesFromFile(const char* fname, bool allowWebDB)
 {
   if (!available())
     return;
-  
-  typedef const gchar* (*GetDancesStr)(GObject*);
+
   GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_file_get_song_dances_str");
 
-  typedef void (*QueryDancesFromWeb)(GObject*, bool, bool, GCancellable*, GAsyncReadyCallback, DanceTagProvider*);
   QueryDancesFromWeb _dt_file_query_db = (QueryDancesFromWeb) getFunc("song_file_query_web_database");
   
   ScopedGObject<GObject> dtFSong;
@@ -208,7 +208,6 @@ QString DanceTagProvider::getDancesFromFile(const char* fname)
   if (!available())
     return QString();
 
-  typedef const gchar* (*GetDancesStr)(GObject*);
   GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_file_get_song_dances_str");
   
   ScopedGObject<GObject> dtFSong;
