@@ -51,7 +51,7 @@ DanceTagProvider::DanceTagProvider(QObject* parent)
   available_ = libdt_->load();
   data_provider_.reset_without_add(new_dataprovider());
   currentCancellable_ = NULL;
-  
+
   reloadSettings();
 }
 
@@ -68,7 +68,7 @@ bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
   DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
 
   _dt_set_key(dt, apikey_.toUtf8());
-  
+
   return true;
 }
 
@@ -116,8 +116,14 @@ void DanceTagProvider::reloadSettings()
   apikey_ = s.value("api_key").toString();
   writeTags_ = s.value("write_tags_file").toBool();
   overrideTags_ = s.value("override_tags").toBool();
-  
+
   setDataProviderApiKey(data_provider_.get());
+}
+
+static const gchar* songfile_get_dances_str (DanceTagProvider *self, GObject *dtfile) {
+  GetDancesStr _dt_get_dancestr = (GetDancesStr) self->getFunc("song_file_get_song_dances_str");
+
+  return _dt_get_dancestr(dtfile);
 }
 
 static void song_file_query_web_database_finish (GObject* dtfile, GAsyncResult* res, gpointer udata)
@@ -131,16 +137,14 @@ static void song_file_query_web_database_finish (GObject* dtfile, GAsyncResult* 
 
   QueryDancesFromWeb_Finish _dt_query_finish = (QueryDancesFromWeb_Finish) self->getFunc("song_file_query_web_database_finish");
 
-  GetDancesStr _dt_get_dancestr = (GetDancesStr) self->getFunc("song_file_get_song_dances_str");
-  
   bool success = _dt_query_finish (dtfile, res, &error);
-  
+
   if (error != NULL) {
     qLog(Error) << error->message;
     g_clear_error (&error);
     return;
   }
-  
+
   // get the current song data and abort if it's not defined.
   Song newSong = self->currentSong();
   if (newSong == NULL)
@@ -149,13 +153,13 @@ static void song_file_query_web_database_finish (GObject* dtfile, GAsyncResult* 
   QString dances = newSong.dances();
   if (success) {
       // Reload dances
-      dances = QString(_dt_get_dancestr(dtfile));
+      dances = QString(songfile_get_dances_str(self, dtfile));
     } else
       qLog(Debug) << "Unable to fetch dance-tag for" << newSong.basefilename() << "from web.";
-  
+
   qLog(Debug) << "!DanceList: " << dances;
   newSong.set_dances (dances);
-  
+
   self->setCurrentSong(NULL);
   self->emitSongDataChanged(newSong);
 }
@@ -175,20 +179,18 @@ void DanceTagProvider::queryDancesFromFile(const char* fname, bool allowWebDB)
   if (!available())
     return;
 
-  GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_file_get_song_dances_str");
-
   QueryDancesFromWeb _dt_file_query_db = (QueryDancesFromWeb) getFunc("song_file_query_web_database");
-  
+
   ScopedGObject<GObject> dtFSong;
   dtFSong.reset_without_add(new_dtsongfile(fname));
   if (!dtFSong.get())
     return;
-  
-  QString dances = QString(_dt_get_dancestr(dtFSong.get()));
+
+  QString dances = QString(songfile_get_dances_str(this, dtFSong.get()));
 
   if ((allowWebDB) && (dances.isEmpty())) {
     qLog(Debug) << "Searching the web for dances...";
-    
+
     if (currentCancellable_ != NULL) {
       // Cancel prefious action
       g_cancellable_cancel (currentCancellable_);
@@ -208,15 +210,13 @@ QString DanceTagProvider::getDancesFromFile(const char* fname)
   if (!available())
     return QString();
 
-  GetDancesStr _dt_get_dancestr = (GetDancesStr) getFunc("song_file_get_song_dances_str");
-  
   ScopedGObject<GObject> dtFSong;
   dtFSong.reset_without_add(new_dtsongfile(fname));
   if (!dtFSong.get())
     return QString();
-  
-  QString dances = QString(_dt_get_dancestr(dtFSong.get()));
-  
+
+  QString dances = QString(songfile_get_dances_str(this, dtFSong.get()));
+
   return dances;
 }
 
@@ -227,7 +227,7 @@ void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
 
   if (song.url().scheme() != "file")
     return;
-  
+
   if (!song.dances().isEmpty())
     return;
 
