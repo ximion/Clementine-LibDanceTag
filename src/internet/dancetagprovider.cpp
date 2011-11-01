@@ -92,7 +92,7 @@ bool DanceTagProvider::available() const
 bool DanceTagProvider::ready() const
 {
   if ((available()) && (!apikey_.isEmpty())
-   && (data_provider_.get()) && (enabled_))
+   && (data_provider_) && (enabled_))
     return true;
   else
     return false;
@@ -145,26 +145,26 @@ static void song_file_query_web_database_finish (GObject* dtfile, GAsyncResult* 
     return;
   }
 
-  // get the current song data and abort if it's not defined.
+  // Get the current song data and abort if it's not defined.
   Song newSong = self->currentSong();
-  if (newSong == NULL)
+  if (!newSong.is_valid())
     return;
 
   QString dances = newSong.dances();
   if (success) {
       // Reload dances
-      dances = QString(songfile_get_dances_str(self, dtfile));
-    } else
+      dances = QString::fromUtf8(songfile_get_dances_str(self, dtfile));
+  } else
       qLog(Debug) << "Unable to fetch dance-tag for" << newSong.basefilename() << "from web.";
 
   qLog(Debug) << "!DanceList: " << dances;
   newSong.set_dances (dances);
 
-  self->setCurrentSong(NULL);
+  self->setCurrentSong(Song());
   self->emitSongDataChanged(newSong);
 }
 
-void DanceTagProvider::emitSongDataChanged(Song s)
+void DanceTagProvider::emitSongDataChanged(const Song& s)
 {
   SongList songs;
   songs.append(s);
@@ -183,16 +183,16 @@ void DanceTagProvider::queryDancesFromFile(const char* fname, bool allowWebDB)
 
   ScopedGObject<GObject> dtFSong;
   dtFSong.reset_without_add(new_dtsongfile(fname));
-  if (!dtFSong.get())
+  if (!dtFSong)
     return;
 
-  QString dances = QString(songfile_get_dances_str(this, dtFSong.get()));
+  QString dances = QString::fromUtf8(songfile_get_dances_str(this, dtFSong.get()));
 
   if ((allowWebDB) && (dances.isEmpty())) {
     qLog(Debug) << "Searching the web for dances...";
 
     if (currentCancellable_ != NULL) {
-      // Cancel prefious action
+      // Cancel previous action
       g_cancellable_cancel (currentCancellable_);
       g_object_unref (currentCancellable_);
     }
@@ -212,10 +212,10 @@ QString DanceTagProvider::getDancesFromFile(const char* fname)
 
   ScopedGObject<GObject> dtFSong;
   dtFSong.reset_without_add(new_dtsongfile(fname));
-  if (!dtFSong.get())
+  if (!dtFSong)
     return QString();
 
-  QString dances = QString(songfile_get_dances_str(this, dtFSong.get()));
+  QString dances = QString::fromUtf8(songfile_get_dances_str(this, dtFSong.get()));
 
   return dances;
 }

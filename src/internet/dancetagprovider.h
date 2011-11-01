@@ -34,7 +34,7 @@ class DanceTagProvider : public QObject {
 
 public:
   DanceTagProvider(QObject* parent = 0);
-  
+
   static const char* kSettingsGroup;
 
   bool ready() const;
@@ -54,8 +54,8 @@ public:
   // Please don't use these functions outside of DanceTagProvider!
   void* getFunc(const QString& name);
   Song currentSong() const { return currentSong_; }
-  void setCurrentSong(Song s) { currentSong_ = s; }
-  void emitSongDataChanged (Song s);
+  void setCurrentSong(const Song& s) { currentSong_ = s; }
+  void emitSongDataChanged (const Song& s);
 
 public slots:
   void fetchDanceTag(const Song& song, bool allowWebDB = false);
@@ -72,7 +72,7 @@ private:
   QLibrary *libdt_;
   ScopedGObject<GObject> data_provider_;
   bool available_;
-  
+
   QString apikey_;
   bool enabled_;
   bool writeTags_;
