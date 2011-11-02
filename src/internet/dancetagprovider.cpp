@@ -33,6 +33,7 @@
 
 const char* DanceTagProvider::kSettingsGroup = "DanceTag";
 DanceTagProvider* DanceTagProvider::instance_ = 0;
+bool DanceTagProvider::dancetag_available_ = true;
 
 // Define types for LibDanceTag Methods
 typedef GObject* (*NewDataProvider)();
@@ -48,7 +49,7 @@ DanceTagProvider::DanceTagProvider(QObject* parent)
 {
   // Search for the dancetag library
   libdt_ = new QLibrary("dancetag", DanceTagProvider::DANCETAG_API_VERSION, this);
-  available_ = libdt_->load();
+  dancetag_available_ = libdt_->load();
   data_provider_.reset_without_add(new_dataprovider());
   currentCancellable_ = NULL;
 
@@ -65,8 +66,10 @@ void* DanceTagProvider::getFunc(const QString& name)
 
 bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
 {
-  DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
+  if (!available())
+    return false;
 
+  DataProviderSetKey _dt_set_key = (DataProviderSetKey) getFunc("data_provider_set_api_key");
   _dt_set_key(dt, apikey_.toUtf8());
 
   return true;
@@ -74,6 +77,9 @@ bool DanceTagProvider::setDataProviderApiKey(GObject* dt)
 
 GObject* DanceTagProvider::new_dataprovider ()
 {
+  if (!available())
+    return NULL;
+
   NewDataProvider _new_dt = (NewDataProvider) getFunc("data_provider_new");
   DataProviderSetAgent _dt_set_agent = (DataProviderSetAgent) getFunc("data_provider_set_useragent");
 
@@ -86,7 +92,7 @@ GObject* DanceTagProvider::new_dataprovider ()
 
 bool DanceTagProvider::available() const
 {
-  return available_;
+  return dancetag_available_;
 }
 
 bool DanceTagProvider::ready() const
@@ -236,8 +242,20 @@ void DanceTagProvider::fetchDanceTag(const Song& song, bool allowWebDB)
 }
 
 DanceTagProvider* DanceTagProvider::getInstance(QObject* parent) {
+  // If we don't have libDanceTag, we don't need this object
+  if (!dancetag_available_)
+    return NULL;
+
   if (instance_ == 0)
     instance_ = new DanceTagProvider(parent);
+
+  // No dancetag means we can delete the instance again.
+  if (!dancetag_available_) {
+    delete instance_;
+    instance_ = NULL;
+    return NULL;
+  }
+
   return instance_;
 }
 
@@ -245,4 +263,6 @@ void DanceTagProvider::deleteInstance()
 {
   delete instance_;
   instance_ = 0;
+  // Set this to true, so we check for the DanceTag lib again if a new instance is requested.
+  dancetag_available_ = true;
 }

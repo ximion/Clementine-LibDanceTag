@@ -67,11 +67,11 @@ signals:
 
 private:
   const static int DANCETAG_API_VERSION = 0;
+  static bool dancetag_available_;
   static DanceTagProvider* instance_;
 
   QLibrary *libdt_;
   ScopedGObject<GObject> data_provider_;
-  bool available_;
 
   QString apikey_;
   bool enabled_;
