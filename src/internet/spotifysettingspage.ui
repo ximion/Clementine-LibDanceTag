@@ -78,7 +78,7 @@
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>For licensing reasons Spotify support is in a separate plugin.</string>
+         <string>For licensing reasons, Spotify support is in a separate plugin.</string>
         </property>
        </widget>
       </item>
